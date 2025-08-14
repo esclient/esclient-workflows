@@ -34,21 +34,32 @@ jobs:
       
       - name: Ensure Maven Wrapper exists and is executable
         run: |
-          if [ ! -f "./mvnw" ]; then
-            echo "Maven wrapper not found, generating..."
+          if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
+            echo "Maven wrapper or properties missing, generating..."
             mvn wrapper:wrapper
+            # Verify all files were created
+            if [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
+              echo "ERROR: Wrapper generation failed, falling back to direct maven"
+              echo "MAVEN_CMD=mvn" >> $GITHUB_ENV
+            else
+              chmod +x ./mvnw
+              echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+              echo "Maven wrapper is ready!"
+            fi
+          else
+            chmod +x ./mvnw
+            echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+            echo "Maven wrapper found and ready!"
           fi
-          chmod +x ./mvnw
-          echo "Maven wrapper is ready!"
       
       - name: Install dependencies
-        run: ./mvnw dependency:resolve
+        run: ${{ env.MAVEN_CMD }} dependency:resolve
       
       - name: Run code formatting check
-        run: ./mvnw spotless:check
+        run: ${{ env.MAVEN_CMD }} spotless:check
       
       - name: Run static analysis
-        run: ./mvnw checkstyle:check spotbugs:check pmd:check
+        run: ${{ env.MAVEN_CMD }} checkstyle:check spotbugs:check pmd:check
 
   test:
     runs-on: ubuntu-latest
@@ -71,21 +82,32 @@ jobs:
       
       - name: Ensure Maven Wrapper exists and is executable
         run: |
-          if [ ! -f "./mvnw" ]; then
-            echo "Maven wrapper not found, generating..."
+          if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
+            echo "Maven wrapper or properties missing, generating..."
             mvn wrapper:wrapper
+            # Verify all files were created
+            if [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
+              echo "ERROR: Wrapper generation failed, falling back to direct maven"
+              echo "MAVEN_CMD=mvn" >> $GITHUB_ENV
+            else
+              chmod +x ./mvnw
+              echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+              echo "Maven wrapper is ready!"
+            fi
+          else
+            chmod +x ./mvnw
+            echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+            echo "Maven wrapper found and ready!"
           fi
-          chmod +x ./mvnw
-          echo "Maven wrapper is ready!"
       
       - name: Install dependencies
-        run: ./mvnw dependency:resolve
+        run: ${{ env.MAVEN_CMD }} dependency:resolve
       
       - name: Run tests
-        run: ./mvnw test
+        run: ${{ env.MAVEN_CMD }} test
       
       - name: Generate test report
-        run: ./mvnw jacoco:report
+        run: ${{ env.MAVEN_CMD }} jacoco:report
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
