@@ -1,4 +1,5 @@
 name: "lint and test java"
+
 on:
   workflow_call:
     inputs:
@@ -10,51 +11,82 @@ on:
         type: string
         required: false
         default: "temurin"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
+      
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+      
+      - name: Ensure Maven Wrapper exists and is executable
+        run: |
+          if [ ! -f "./mvnw" ]; then
+            echo "Maven wrapper not found, generating..."
+            mvn wrapper:wrapper
+          fi
+          chmod +x ./mvnw
+          echo "Maven wrapper is ready!"
+      
       - name: Install dependencies
         run: ./mvnw dependency:resolve
+      
       - name: Run code formatting check
         run: ./mvnw spotless:check
+      
       - name: Run static analysis
         run: ./mvnw checkstyle:check spotbugs:check pmd:check
+
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
+      
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+      
+      - name: Ensure Maven Wrapper exists and is executable
+        run: |
+          if [ ! -f "./mvnw" ]; then
+            echo "Maven wrapper not found, generating..."
+            mvn wrapper:wrapper
+          fi
+          chmod +x ./mvnw
+          echo "Maven wrapper is ready!"
+      
       - name: Install dependencies
         run: ./mvnw dependency:resolve
+      
       - name: Run tests
         run: ./mvnw test
+      
       - name: Generate test report
         run: ./mvnw jacoco:report
+      
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
