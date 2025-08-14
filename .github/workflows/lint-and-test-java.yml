@@ -13,99 +13,77 @@ on:
         default: "temurin"
 
 jobs:
-  lint:
+  lint-and-quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
-      
+
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      
+
       - name: Ensure Maven Wrapper exists and is executable
         run: |
           if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-            echo "Maven wrapper or properties missing, generating..."
+            echo "Maven wrapper missing, generating..."
             mvn wrapper:wrapper
-            # Verify all files were created
-            if [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-              echo "ERROR: Wrapper generation failed, falling back to direct maven"
-              echo "MAVEN_CMD=mvn" >> $GITHUB_ENV
-            else
-              chmod +x ./mvnw
-              echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
-              echo "Maven wrapper is ready!"
-            fi
-          else
-            chmod +x ./mvnw
-            echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
-            echo "Maven wrapper found and ready!"
           fi
-      
+          chmod +x ./mvnw
+          echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: ${{ env.MAVEN_CMD }} dependency:resolve
-      
-      - name: Run static analysis
-        run: ${{ env.MAVEN_CMD }} checkstyle:check spotbugs:check pmd:check
+
+      - name: Run static analysis (Checkstyle, SpotBugs, PMD, Spotless)
+        run: ${{ env.MAVEN_CMD }} clean verify -Pquality
 
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
-      
+
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      
+
       - name: Ensure Maven Wrapper exists and is executable
         run: |
           if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-            echo "Maven wrapper or properties missing, generating..."
+            echo "Maven wrapper missing, generating..."
             mvn wrapper:wrapper
-            # Verify all files were created
-            if [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-              echo "ERROR: Wrapper generation failed, falling back to direct maven"
-              echo "MAVEN_CMD=mvn" >> $GITHUB_ENV
-            else
-              chmod +x ./mvnw
-              echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
-              echo "Maven wrapper is ready!"
-            fi
-          else
-            chmod +x ./mvnw
-            echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
-            echo "Maven wrapper found and ready!"
           fi
-      
+          chmod +x ./mvnw
+          echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: ${{ env.MAVEN_CMD }} dependency:resolve
-      
+
       - name: Run tests
         run: ${{ env.MAVEN_CMD }} test
-      
-      - name: Generate test report
+
+      - name: Generate JaCoCo coverage report
         run: ${{ env.MAVEN_CMD }} jacoco:report
-      
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
