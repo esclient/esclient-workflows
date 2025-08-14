@@ -41,11 +41,14 @@ jobs:
           chmod +x ./mvnw
           echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
 
-      - name: Run static analysis (Checkstyle, SpotBugs, PMD, Spotless)
-        run: MAVEN_OPTS="-Dpmd.failOnViolation=false" ${{ env.MAVEN_CMD }} clean verify -Pquality
-        # PMD violations won't fail the build
+      - name: Install dependencies
+        run: ${{ env.MAVEN_CMD }} dependency:resolve
 
-  test-and-coverage:
+      - name: Run static analysis (Checkstyle, SpotBugs, PMD, Spotless)
+        run: ${{ env.MAVEN_CMD }} clean verify -Pquality -Dpmd.failOnViolation=false
+        # PMD will run but will not fail the build
+
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -73,9 +76,12 @@ jobs:
           chmod +x ./mvnw
           echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
 
+      - name: Install dependencies
+        run: ${{ env.MAVEN_CMD }} dependency:resolve
+
       - name: Run tests and generate coverage
-        run: ${{ env.MAVEN_CMD }} clean verify -Pcoverage
-        # Assumes 'coverage' profile runs JaCoCo, and tests will fail if broken
+        run: ${{ env.MAVEN_CMD }} clean verify -DskipTests=false -Pcoverage
+        # Assumes you have a 'coverage' profile that runs JaCoCo
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
