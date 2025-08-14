@@ -45,8 +45,8 @@ jobs:
         run: ${{ env.MAVEN_CMD }} dependency:resolve
 
       - name: Run static analysis (Checkstyle, SpotBugs, PMD, Spotless)
-        run: ${{ env.MAVEN_CMD }} clean verify -Pquality -Dpmd.failOnViolation=false
-        # PMD will run but will not fail the build
+        run: ${{ env.MAVEN_CMD }} clean verify -Pquality -Dpmd.failOnViolation=false --no-transfer-progress
+
 
   test:
     runs-on: ubuntu-latest
