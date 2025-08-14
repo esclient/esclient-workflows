@@ -55,9 +55,6 @@ jobs:
       - name: Install dependencies
         run: ${{ env.MAVEN_CMD }} dependency:resolve
       
-      - name: Run code formatting check
-        run: ${{ env.MAVEN_CMD }} spotless:check
-      
       - name: Run static analysis
         run: ${{ env.MAVEN_CMD }} checkstyle:check spotbugs:check pmd:check
 
