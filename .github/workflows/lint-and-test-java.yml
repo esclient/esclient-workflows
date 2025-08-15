@@ -31,6 +31,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y make protobuf-compiler
+          
+          # Install protoc-gen-grpc-java
+          GRPC_JAVA_VERSION="1.58.0"
+          wget -O protoc-gen-grpc-java "https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/${GRPC_JAVA_VERSION}/protoc-gen-grpc-java-${GRPC_JAVA_VERSION}-linux-x86_64.exe"
+          chmod +x protoc-gen-grpc-java
+          sudo mv protoc-gen-grpc-java /usr/local/bin/
+          
+          # Install protoc-gen-grpc-java
+          GRPC_JAVA_VERSION="1.58.0"
+          wget -O protoc-gen-grpc-java "https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/${GRPC_JAVA_VERSION}/protoc-gen-grpc-java-${GRPC_JAVA_VERSION}-linux-x86_64.exe"
+          chmod +x protoc-gen-grpc-java
+          sudo mv protoc-gen-grpc-java /usr/local/bin/
       - name: Ensure Maven Wrapper exists and is executable
         run: |
           if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
