@@ -30,13 +30,7 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y make protobuf-compiler
-          
-          # Install protoc-gen-grpc-java
-          GRPC_JAVA_VERSION="1.58.0"
-          wget -O protoc-gen-grpc-java "https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/${GRPC_JAVA_VERSION}/protoc-gen-grpc-java-${GRPC_JAVA_VERSION}-linux-x86_64.exe"
-          chmod +x protoc-gen-grpc-java
-          sudo mv protoc-gen-grpc-java /usr/local/bin/
+          sudo apt-get install -y make
           
           # Install protoc-gen-grpc-java
           GRPC_JAVA_VERSION="1.58.0"
@@ -53,13 +47,11 @@ jobs:
           echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
       - name: Install dependencies
         run: ${{ env.MAVEN_CMD }} dependency:resolve
-      - name: Generate protobuf stubs
-        run: make gen-stubs
-      - name: Run static analysis (using same commands as local)
+      - name: Run static analysis (excluding generated files)
         run: |
           ${{ env.MAVEN_CMD }} spotless:check -Pquality
           ${{ env.MAVEN_CMD }} checkstyle:check -Pquality
-          ${{ env.MAVEN_CMD }} pmd:check -Pquality
+          ${{ env.MAVEN_CMD }} pmd:check -Pquality -Dpmd.excludes="**/rating/Rating*.java,**/rating/*ServiceGrpc*.java"
           ${{ env.MAVEN_CMD }} spotbugs:check -Pquality
   test:
     runs-on: ubuntu-latest
@@ -91,8 +83,6 @@ jobs:
           echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
       - name: Install dependencies
         run: ${{ env.MAVEN_CMD }} dependency:resolve
-      - name: Generate protobuf stubs
-        run: make gen-stubs
       - name: Run tests and generate coverage
         run: ${{ env.MAVEN_CMD }} test jacoco:report -Pquality
       - name: Upload coverage reports
