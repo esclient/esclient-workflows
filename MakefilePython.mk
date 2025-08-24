@@ -1,4 +1,4 @@
-.PHONY: clean fetch-proto get-stubs update format lint test
+.PHONY: clean fetch-proto gen-stubs update format lint test
 
 ifeq ($(OS),Windows_NT)
 MKDIR	 = powershell -Command "New-Item -ItemType Directory -Force -Path"
@@ -41,7 +41,7 @@ fetch-proto:
 	$(MKDIR) "$(TMP_DIR)"
 	$(DOWN) "https://raw.githubusercontent.com/esclient/protos/$(PROTO_TAG)/$(PROTO_NAME)" $(DOWN_OUT) "$(TMP_DIR)/$(PROTO_NAME)"
 
-get-stubs: fetch-proto
+gen-stubs: fetch-proto
 	$(MKDIR) "$(OUT_DIR)"
 	pdm run python -m grpc_tools.protoc \
 		--proto_path="$(TMP_DIR)" \
@@ -51,7 +51,7 @@ get-stubs: fetch-proto
 		"$(TMP_DIR)/$(PROTO_NAME)"
 	$(FIX_IMPORTS)
 
-update: get-stubs clean
+update: gen-stubs clean
 
 format:
 	black .
@@ -67,3 +67,6 @@ lint:
 
 test:
 	pytest
+
+dev-check: format lint test
+	@echo "All checks passed! ✅"
