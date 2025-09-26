@@ -27,6 +27,11 @@ jobs:
           cache: true
           cache-dependency-path: pdm.lock
 
+      - name: Install just
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y just
+
       - name: Cache PDM packages
         id: cache-pdm
         uses: actions/cache@v3
@@ -39,7 +44,7 @@ jobs:
         run: pdm install --with dev
 
       - name: Run lint
-        run: pdm run make lint
+        run: pdm run just lint
 
   test:
     runs-on: ubuntu-latest
@@ -59,6 +64,11 @@ jobs:
           cache: true
           cache-dependency-path: pdm.lock
 
+      - name: Install just
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y just
+
       - name: Cache PDM packages
         id: cache-pdm-test
         uses: actions/cache@v3
@@ -71,4 +81,4 @@ jobs:
         run: pdm install
 
       - name: Run tests
-        run: pdm run make test
+        run: pdm run just test
