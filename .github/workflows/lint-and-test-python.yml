@@ -28,9 +28,7 @@ jobs:
           cache-dependency-path: pdm.lock
 
       - name: Install just
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y just
+        uses: extractions/setup-just@v3
 
       - name: Cache PDM packages
         id: cache-pdm
@@ -65,9 +63,7 @@ jobs:
           cache-dependency-path: pdm.lock
 
       - name: Install just
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y just
+        uses: extractions/setup-just@v3
 
       - name: Cache PDM packages
         id: cache-pdm-test

@@ -19,12 +19,12 @@ fetch-proto:
     {{DOWN}} "https://raw.githubusercontent.com/esclient/protos/{{PROTO_TAG}}/{{PROTO_NAME}}" {{DOWN_OUT}} "{{TMP_DIR}}/{{PROTO_NAME}}"
 
 docker-build:
-    docker build --build-arg PORT={{PORT}} -t {{SERVICE_NAME}} .
+    docker build --build-arg PORT={{ env_var('PORT') }} -t {{SERVICE_NAME}} .
 
 run: docker-build
     docker run --rm -it \
       --env-file .env \
-      -p {{PORT}}:{{PORT}} \
+      -p {{ env_var('PORT') }}:{{ env_var('PORT') }} \
       -v {{invocation_directory()}}:/app \
       -e WATCHFILES_FORCE_POLLING=true \
       {{SERVICE_NAME}}
