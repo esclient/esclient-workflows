@@ -8,9 +8,6 @@ PY_FIX_IMPORTS := if os() == 'windows' {
   'bash -lc "for f in ' + OUT_DIR + '/*_pb2_grpc.py; do [ -f \"$f\" ] && sed -i \"s/^import \\(.*_pb2\\)/from . import \\1/\" \"$f\"; done"'
 }
 
-default:
-    @just --list
-
 clean:
     {{RM}}
 
