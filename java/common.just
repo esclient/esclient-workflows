@@ -49,8 +49,8 @@ format:
 lint:
     mvn spotless:check -Pquality
     mvn checkstyle:check -Pquality
-    mvn pmd:check -Pquality
     mvn spotbugs:check -Pquality
+    mvn modernizer:modernizer -Pquality
 
 test:
     mvn test jacoco:report -Pquality
