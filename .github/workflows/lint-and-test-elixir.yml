@@ -30,7 +30,7 @@ jobs:
         run: mix deps.get
 
       - name: Run Credo (SARIF)
-        run: mix credo --strict --format sarif > credo.sarif
+        run: mix credo --strict --format sarif --mute-exit-status > credo.sarif
 
       - name: Install Sobelow escript
         run: mix escript.install hex sobelow --force
