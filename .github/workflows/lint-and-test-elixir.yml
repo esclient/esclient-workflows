@@ -29,11 +29,8 @@ jobs:
       - name: Install deps
         run: mix deps.get
 
-      - name: Run Credo
-        run: |
-          mix credo --strict \
-            --sonarqube-base-folder . \
-            --sonarqube-file credo_sonarqube.json
+      - name: Run Credo (SARIF)
+        run: mix credo --strict --format sarif > credo.sarif
 
       - name: Install Sobelow escript
         run: mix escript.install hex sobelow --force
@@ -49,7 +46,6 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.sources=.
-            -Dsonar.externalIssuesReportPaths=credo_sonarqube.json
             -Dsonar.sarifReportPaths=sobelow.sarif
 
       - name: Quality Gate
