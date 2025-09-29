@@ -1,0 +1,58 @@
+name: "lint and test elixir"
+
+on:
+  workflow_call:
+    inputs:
+      elixir-version:
+        type: string
+        required: true
+      otp-version:
+        type: string
+        required: true
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up BEAM (Elixir/OTP)
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ inputs.elixir-version }}
+          otp-version: ${{ inputs.otp-version }}
+
+      - name: Install deps
+        run: mix deps.get
+
+      - name: Run Credo
+        run: |
+          mix credo --strict \
+            --sonarqube-base-folder . \
+            --sonarqube-file credo_sonarqube.json
+
+      - name: Install Sobelow escript
+        run: mix escript.install hex sobelow --force
+      - name: Run Sobelow (SARIF)
+        run: ~/.mix/escripts/sobelow --format sarif --out sobelow.sarif || true
+
+      - name: Sonar scan
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.sources=.
+            -Dsonar.externalIssuesReportPaths=credo_sonarqube.json
+            -Dsonar.sarifReportPaths=sobelow.sarif
+
+      - name: Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+        env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
