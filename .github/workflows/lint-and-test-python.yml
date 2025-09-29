@@ -6,6 +6,9 @@ on:
       python-version:
         type: string
         required: true
+    secrets:
+      SONAR_TOKEN:
+        required: true
 
 jobs:
   lint:
