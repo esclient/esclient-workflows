@@ -103,6 +103,13 @@ jobs:
       - name: Run tests and generate coverage
         run: ${{ env.MAVEN_CMD }} test jacoco:report -Pquality
 
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/jacoco.xml
+          retention-days: 1
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
@@ -140,6 +147,9 @@ jobs:
       - name: Compile
         run: ${{ env.MAVEN_CMD }} -B -DskipTests compile
 
+      - name: Run tests and generate coverage
+        run: ${{ env.MAVEN_CMD }} test jacoco:report -Pquality
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
@@ -149,6 +159,7 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.java.binaries=./target/classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
