@@ -6,7 +6,7 @@ on:
       java-version:
         type: string
         required: false
-        default: "17"
+        default: "21"
       java-distribution:
         type: string
         required: false
@@ -40,7 +40,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y make
           
-          GRPC_JAVA_VERSION="1.58.0"
+          GRPC_JAVA_VERSION="1.68.1"
           wget -O protoc-gen-grpc-java "https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/${GRPC_JAVA_VERSION}/protoc-gen-grpc-java-${GRPC_JAVA_VERSION}-linux-x86_64.exe"
           chmod +x protoc-gen-grpc-java
           sudo mv protoc-gen-grpc-java /usr/local/bin/
@@ -61,8 +61,8 @@ jobs:
         run: |
           ${{ env.MAVEN_CMD }} spotless:check -Pquality
           ${{ env.MAVEN_CMD }} checkstyle:check -Pquality
-          ${{ env.MAVEN_CMD }} pmd:check -Pquality -Dpmd.excludes="**/rating/Rating*.java,**/rating/*ServiceGrpc*.java"
           ${{ env.MAVEN_CMD }} spotbugs:check -Pquality
+          ${{ env.MAVEN_CMD }} modernizer:modernizer -Pquality
 
   test:
     runs-on: ubuntu-latest
