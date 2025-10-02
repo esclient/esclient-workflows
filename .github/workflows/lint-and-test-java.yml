@@ -148,15 +148,7 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.java.binaries=./target/classes \
-            -Dsonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml \
-            -Dsonar.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/** \
-            -Dsonar.coverage.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/** \
-            -Dsonar.cpd.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/** \
-            -Dsonar.test.inclusions=**/*Test.java,**/*Tests.java \
-            -Dsonar.sources=src/main/java \
-            -Dsonar.tests=src/test/java
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
