@@ -64,77 +64,13 @@ jobs:
           ${{ env.MAVEN_CMD }} spotbugs:check -Pquality
           ${{ env.MAVEN_CMD }} modernizer:modernizer -Pquality
 
-  test:
+  test-and-sonar:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for better analysis
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: ${{ inputs.java-distribution }}
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Install build tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y make protobuf-compiler
-
-      - name: Ensure Maven Wrapper exists and is executable
-        run: |
-          if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-            echo "Maven wrapper missing, generating..."
-            mvn wrapper:wrapper
-          fi
-          chmod +x ./mvnw
-          echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        run: ${{ env.MAVEN_CMD }} dependency:resolve
-
-      - name: Run tests and generate coverage
-        run: ${{ env.MAVEN_CMD }} clean test jacoco:report -Pquality
-
-      - name: Upload coverage report (XML)
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-report
-          path: |
-            target/site/jacoco/jacoco.xml
-            target/jacoco.exec
-          retention-days: 1
-
-      - name: Upload compiled classes
-        uses: actions/upload-artifact@v4
-        with:
-          name: compiled-classes
-          path: target/classes
-          retention-days: 1
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./target/site/jacoco/jacoco.xml
-          fail_ci_if_error: false
-
-  sonarqube:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+          fetch-depth: 0  # Shallow clones should be disabled for better SonarQube analysis
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -156,55 +92,74 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make protobuf-compiler
+
       - name: Ensure Maven Wrapper exists and is executable
         run: |
           if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
+            echo "Maven wrapper missing, generating..."
             mvn wrapper:wrapper
           fi
           chmod +x ./mvnw
           echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
 
-      - name: Download coverage report
-        uses: actions/download-artifact@v4
-        with:
-          name: jacoco-report
-          path: target/site/jacoco/
+      - name: Install dependencies
+        run: ${{ env.MAVEN_CMD }} dependency:resolve
 
-      - name: Download compiled classes
-        uses: actions/download-artifact@v4
-        with:
-          name: compiled-classes
-          path: target/classes/
+      - name: Run tests and generate coverage
+        run: ${{ env.MAVEN_CMD }} clean verify jacoco:report -Pquality
 
       - name: Verify coverage files exist
         run: |
           echo "Checking for coverage files..."
-          ls -la target/site/jacoco/ || echo "No jacoco directory"
-          ls -la target/classes/ || echo "No classes directory"
           if [ -f "target/site/jacoco/jacoco.xml" ]; then
             echo "✓ Coverage report found"
-            head -20 target/site/jacoco/jacoco.xml
+            echo "Coverage file size: $(wc -l < target/site/jacoco/jacoco.xml) lines"
+            echo "First 30 lines of coverage report:"
+            head -30 target/site/jacoco/jacoco.xml
           else
             echo "✗ Coverage report NOT found"
             exit 1
           fi
+          
+          if [ -d "target/classes" ]; then
+            echo "✓ Compiled classes found"
+            echo "Class files:"
+            find target/classes -name "*.class" | head -20
+          else
+            echo "✗ Compiled classes NOT found"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./target/site/jacoco/jacoco.xml
+          fail_ci_if_error: false
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.java.binaries=./target/classes
-            -Dsonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
-            -Dsonar.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/**
-            -Dsonar.coverage.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/**
-            -Dsonar.cpd.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/**
-            -Dsonar.verbose=true
+        run: |
+          ${{ env.MAVEN_CMD }} sonar:sonar \
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.java.binaries=./target/classes \
+            -Dsonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml \
+            -Dsonar.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/** \
+            -Dsonar.coverage.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/** \
+            -Dsonar.cpd.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/** \
+            -Dsonar.test.inclusions=**/*Test.java,**/*Tests.java \
+            -Dsonar.sources=src/main/java \
+            -Dsonar.tests=src/test/java
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
