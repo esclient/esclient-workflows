@@ -199,6 +199,9 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.java.binaries=./target/classes
             -Dsonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
+            -Dsonar.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/**
+            -Dsonar.coverage.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/**
+            -Dsonar.cpd.exclusions=**/RatingServiceGrpc*.java,**/Rating.java,**/RatingOrBuilder.java,**/*OuterClass.java,**/generated/**,**/target/generated-sources/**
             -Dsonar.verbose=true
 
       - name: Quality Gate
