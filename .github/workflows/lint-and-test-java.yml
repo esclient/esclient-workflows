@@ -69,6 +69,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -101,16 +103,25 @@ jobs:
         run: ${{ env.MAVEN_CMD }} dependency:resolve
 
       - name: Run tests and generate coverage
-        run: ${{ env.MAVEN_CMD }} test jacoco:report -Pquality
+        run: ${{ env.MAVEN_CMD }} clean test jacoco:report -Pquality
 
-      - name: Upload coverage report
+      - name: Upload coverage report (XML)
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
-          path: target/site/jacoco/jacoco.xml
+          path: |
+            target/site/jacoco/jacoco.xml
+            target/jacoco.exec
           retention-days: 1
 
-      - name: Upload coverage reports
+      - name: Upload compiled classes
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-classes
+          path: target/classes
+          retention-days: 1
+
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
           file: ./target/site/jacoco/jacoco.xml
@@ -122,6 +133,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -136,6 +149,13 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
       - name: Ensure Maven Wrapper exists and is executable
         run: |
           if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
@@ -144,11 +164,30 @@ jobs:
           chmod +x ./mvnw
           echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
 
-      - name: Compile
-        run: ${{ env.MAVEN_CMD }} -B -DskipTests compile
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
 
-      - name: Run tests and generate coverage
-        run: ${{ env.MAVEN_CMD }} test jacoco:report -Pquality
+      - name: Download compiled classes
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-classes
+          path: target/classes/
+
+      - name: Verify coverage files exist
+        run: |
+          echo "Checking for coverage files..."
+          ls -la target/site/jacoco/ || echo "No jacoco directory"
+          ls -la target/classes/ || echo "No classes directory"
+          if [ -f "target/site/jacoco/jacoco.xml" ]; then
+            echo "✓ Coverage report found"
+            head -20 target/site/jacoco/jacoco.xml
+          else
+            echo "✗ Coverage report NOT found"
+            exit 1
+          fi
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6.0.0
@@ -160,6 +199,7 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.java.binaries=./target/classes
             -Dsonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
+            -Dsonar.verbose=true
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
