@@ -13,8 +13,8 @@ is_windows := os() == 'windows'
 
 MKDIR := if is_windows { 'powershell -Command "New-Item -ItemType Directory -Force -Path"' } else { 'mkdir -p' }
 RM := if is_windows { 'powershell -NoProfile -Command "Remove-Item -Path ' + TMP_DIR + ' -Recurse -Force"' } else { 'rm -rf ' + TMP_DIR }
-DOWN := if is_windows { 'powershell -Command "Invoke-WebRequest -Uri"' } else { 'wget' }
-DOWN_OUT := if is_windows { '-OutFile' } else { '-O' }
+DOWN := 'curl -fsSL'
+DOWN_OUT := '-o'
 
 ok := 'echo All checks passed! ✅'
 

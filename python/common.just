@@ -1,7 +1,7 @@
 MKDIR := 'mkdir -p'
 RM := 'rm -rf ' + TMP_DIR
-DOWN := 'wget'
-DOWN_OUT := '-O'
+DOWN := 'curl -fsSL'
+DOWN_OUT := '-o'
 PY_FIX_IMPORTS := 'for f in ' + OUT_DIR + '/*_pb2_grpc.py; do [ -f "$f" ] && sed -i "s/^import \\(.*_pb2\\)/from . import \\1/" "$f"; done'
 
 clean:
