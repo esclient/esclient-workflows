@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [ -f .env ]; then
+if [ "$ENV" = "prod" ] && [ -f .env ]; then
     export $(grep -v '^#' .env | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/"//g' | sed "s/'//g" | xargs)
 fi
 
