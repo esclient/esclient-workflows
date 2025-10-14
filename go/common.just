@@ -1,25 +1,7 @@
-PORT           := env_var('PORT')
-SERVICE_NAME   := env_var('SERVICE_NAME')
-TMP_DIR        := env_var('TMP_DIR')
-OUT_DIR        := env_var('OUT_DIR')
-PROTO_TAG      := env_var('PROTO_TAG')
-PROTO_NAME     := env_var('PROTO_NAME')
-
-GO_MODULE      := env_var('GO_MODULE')
-GO_MODULE_GO_OPT := if GO_MODULE == '' { '' } else { '--go_opt=module=' + GO_MODULE }
-GO_MODULE_GRPC_OPT := if GO_MODULE == '' { '' } else { '--go-grpc_opt=module=' + GO_MODULE }
-
-is_windows := os() == 'windows'
-
-MKDIR := if is_windows { 'powershell -Command "New-Item -ItemType Directory -Force -Path"' } else { 'mkdir -p' }
-RM := if is_windows { 'powershell -NoProfile -Command "Remove-Item -Path ' + TMP_DIR + ' -Recurse -Force"' } else { 'rm -rf ' + TMP_DIR }
+MKDIR := 'mkdir -p'
+RM := 'rm -rf ' + TMP_DIR
 DOWN := 'curl -fsSL'
 DOWN_OUT := '-o'
-
-ok := 'echo All checks passed! ✅'
-
-default:
-    @just --list
 
 clean:
     {{RM}}
@@ -28,14 +10,8 @@ fetch-proto:
     {{MKDIR}} "{{TMP_DIR}}"
     {{DOWN}} "https://raw.githubusercontent.com/esclient/protos/{{PROTO_TAG}}/{{PROTO_NAME}}" {{DOWN_OUT}} "{{TMP_DIR}}/{{PROTO_NAME}}"
 
-docker-build:
-    docker build --build-arg PORT={{PORT}} -t {{SERVICE_NAME}} .
-
-run: docker-build
-    docker run --rm -it \
-      --env-file .env \
-      -p {{PORT}}:{{PORT}} \
-      {{SERVICE_NAME}}
+run:
+    ENV=dev ./tools/load_envs.sh go run ./cmd
 
 gen-stubs: fetch-proto
     {{MKDIR}} "{{OUT_DIR}}"
@@ -59,4 +35,3 @@ test:
     # placeholder
 
 prepare: format lint test
-    {{ok}}
