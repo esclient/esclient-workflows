@@ -97,6 +97,8 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.python.version=${{ inputs.python-version }}
+            -Dsonar.coverage.exclusions=**/grpc/**,**/tests/**,**/__pycache__/**
+            -Dsonar.exclusions=**/grpc/**/*_pb2.py,**/grpc/**/*_pb2.pyi,**/grpc/**/*_pb2_grpc.py
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
