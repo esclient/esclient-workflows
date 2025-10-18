@@ -11,6 +11,9 @@ on:
         type: string
         required: false
         default: "temurin"
+      source:
+        type: string
+        required: true
     secrets:
       SONAR_TOKEN:
         required: true
@@ -22,136 +25,95 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Install build tools
+      - name: Set up Maven
         run: |
           sudo apt-get update
-          sudo apt-get install -y make
-          
-          GRPC_JAVA_VERSION="1.68.1"
-          wget -O protoc-gen-grpc-java "https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/${GRPC_JAVA_VERSION}/protoc-gen-grpc-java-${GRPC_JAVA_VERSION}-linux-x86_64.exe"
-          chmod +x protoc-gen-grpc-java
-          sudo mv protoc-gen-grpc-java /usr/local/bin/
+          sudo apt-get install -y maven
 
-      - name: Ensure Maven Wrapper exists and is executable
-        run: |
-          if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-            echo "Maven wrapper missing, generating..."
-            mvn wrapper:wrapper
-          fi
-          chmod +x ./mvnw
-          echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+      - name: Install just
+        uses: extractions/setup-just@v3
 
-      - name: Install dependencies
-        run: ${{ env.MAVEN_CMD }} dependency:resolve
+      - name: Run lint
+        run: just lint
 
-      - name: Run static analysis (excluding generated files)
-        run: |
-          ${{ env.MAVEN_CMD }} spotless:check -Pquality
-          ${{ env.MAVEN_CMD }} checkstyle:check -Pquality
-          ${{ env.MAVEN_CMD }} spotbugs:check -Pquality
-          ${{ env.MAVEN_CMD }} modernizer:modernizer -Pquality
-
-  test-and-sonar:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for better SonarQube analysis
 
-      - name: Set up JDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: ${{ inputs.java-version }}
           distribution: ${{ inputs.java-distribution }}
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Cache SonarQube packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: Install build tools
+      - name: Set up Maven
         run: |
           sudo apt-get update
-          sudo apt-get install -y make protobuf-compiler
+          sudo apt-get install -y maven
 
-      - name: Ensure Maven Wrapper exists and is executable
-        run: |
-          if [ ! -f "./mvnw" ] || [ ! -f "./.mvn/wrapper/maven-wrapper.properties" ]; then
-            echo "Maven wrapper missing, generating..."
-            mvn wrapper:wrapper
-          fi
-          chmod +x ./mvnw
-          echo "MAVEN_CMD=./mvnw" >> $GITHUB_ENV
+      - name: Install just
+        uses: extractions/setup-just@v3
 
-      - name: Install dependencies
-        run: ${{ env.MAVEN_CMD }} dependency:resolve
+      - name: Run tests
+        run: just test
 
-      - name: Run tests and generate coverage
-        run: ${{ env.MAVEN_CMD }} clean verify jacoco:report -Pquality
-
-      - name: Verify coverage files exist
-        run: |
-          echo "Checking for coverage files..."
-          if [ -f "target/site/jacoco/jacoco.xml" ]; then
-            echo "✓ Coverage report found"
-            echo "Coverage file size: $(wc -l < target/site/jacoco/jacoco.xml) lines"
-            echo "First 30 lines of coverage report:"
-            head -30 target/site/jacoco/jacoco.xml
-          else
-            echo "✗ Coverage report NOT found"
-            exit 1
-          fi
-          
-          if [ -d "target/classes" ]; then
-            echo "✓ Compiled classes found"
-            echo "Class files:"
-            find target/classes -name "*.class" | head -20
-          else
-            echo "✗ Compiled classes NOT found"
-            exit 1
-          fi
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Upload JaCoCo report
+        uses: actions/upload-artifact@v4
         with:
-          file: ./target/site/jacoco/jacoco.xml
-          fail_ci_if_error: false
+          name: jacoco-report
+          path: target/site/jacoco/jacoco.xml
+          if-no-files-found: error
 
-      - name: SonarQube Scan
+      - name: Upload compiled classes
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-classes
+          path: target/classes
+          if-no-files-found: error
+
+  sonarqube:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JaCoCo report
+        uses: actions/download-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco
+
+      - name: Download compiled classes
+        uses: actions/download-artifact@v4
+        with:
+          name: java-classes
+          path: target/classes
+
+      - name: Sonar scan
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          ${{ env.MAVEN_CMD }} sonar:sonar \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.java.binaries=target/classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+            -Dsonar.sources=src/${{ inputs.source }}/handler,src/${{ inputs.source }}/service,src/${{ inputs.source }}/repository
+            -Dsonar.tests=tests
+            -Dsonar.coverage.inclusions=src/${{ inputs.source }}/handler/**,src/${{ inputs.source }}/service/**,src/${{ inputs.source }}/repository/**
+            -Dsonar.sourceEncoding=UTF-8
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
-        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
