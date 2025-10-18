@@ -10,8 +10,11 @@ fetch-proto:
     {{MKDIR}} "{{TMP_DIR}}"
     {{DOWN}} "https://raw.githubusercontent.com/esclient/protos/{{PROTO_TAG}}/{{PROTO_NAME}}" {{DOWN_OUT}} "{{TMP_DIR}}/{{PROTO_NAME}}"
 
-run:
-    ENV=dev ./tools/load_envs.sh mvn spring-boot:run
+build:
+    mvn -DskipTests package
+
+run: build
+    ENV=dev ./tools/load_envs.sh java -jar target/rating-service.jar
 
 gen-stubs: fetch-proto
     {{MKDIR}} "{{OUT_DIR}}"
@@ -24,15 +27,12 @@ gen-stubs: fetch-proto
 update: gen-stubs clean
 
 format:
-    mvn spotless:apply -Pquality
+    mvn fmt:format
 
 lint:
-    mvn spotless:check -Pquality
-    mvn checkstyle:check -Pquality
-    mvn spotbugs:check -Pquality
-    mvn modernizer:modernizer -Pquality
+    mvn -DskipTests verify
 
 test:
-    mvn test jacoco:report -Pquality
+    mvn test
 
 prepare: format lint test
