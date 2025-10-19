@@ -6,6 +6,9 @@ on:
       python-version:
         type: string
         required: true
+      source:
+        type: string
+        required: true
     secrets:
       SONAR_TOKEN:
         required: true
@@ -111,6 +114,7 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.python.version=${{ inputs.python-version }}
             -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sources=.
             -Dsonar.exclusions=**/grpc/**
             -Dsonar.tests=tests
             -Dsonar.coverage.inclusions=src/${{ inputs.source }}/handler/**,src/${{ inputs.source }}/service/**,src/${{ inputs.source }}/repository/**
