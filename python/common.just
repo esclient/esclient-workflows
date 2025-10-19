@@ -39,6 +39,10 @@ lint:
     mypy --strict .
 
 test:
-    pytest
+    pytest \
+      --cov=src/{{SOURCE}}/handler \
+      --cov=src/{{SOURCE}}/service \
+      --cov=src/{{SOURCE}}/repository \
+      --cov-report=xml:coverage.xml
 
 prepare: format lint test
