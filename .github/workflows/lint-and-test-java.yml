@@ -108,7 +108,7 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.java.binaries=target/classes
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-            -Dsonar.sources=src/${{ inputs.source }}/handler,src/${{ inputs.source }}/service,src/${{ inputs.source }}/repository
+            -Dsonar.exclusions=api/**
             -Dsonar.tests=tests
             -Dsonar.coverage.inclusions=src/${{ inputs.source }}/handler/**,src/${{ inputs.source }}/service/**,src/${{ inputs.source }}/repository/**
             -Dsonar.sourceEncoding=UTF-8
