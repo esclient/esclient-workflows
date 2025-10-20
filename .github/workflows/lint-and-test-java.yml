@@ -14,6 +14,15 @@ on:
       source:
         type: string
         required: true
+      sonar-inclusions:
+        type: string
+        required: true
+      sonar-exclusions:
+        type: string
+        required: true
+      sonar-coverage-exclusions:
+        type: string
+        required: true
     secrets:
       SONAR_TOKEN:
         required: true
@@ -109,10 +118,10 @@ jobs:
             -Dsonar.java.binaries=target/classes
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
             -Dsonar.sources=.
-            -Dsonar.inclusions=src/**,Dockerfile
-            -Dsonar.exclusions=api/**
+            -Dsonar.inclusions=${{ inputs.sonar-inclusions }}
+            -Dsonar.exclusions=${{ inputs.sonar-exclusions }}
             -Dsonar.tests=tests
-            -Dsonar.coverage.exclusions=src/${{ inputs.source }}/Server.java,src/${{ inputs.source }}/Settings.java
+            -Dsonar.coverage.exclusions=${{ inputs.sonar-coverage-exclusions }}
             -Dsonar.sourceEncoding=UTF-8
 
       - name: Quality Gate
