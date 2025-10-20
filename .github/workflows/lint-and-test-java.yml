@@ -111,7 +111,7 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**,api/**
             -Dsonar.tests=tests
-            -Dsonar.coverage.inclusions=src/${{ inputs.source }}/handler/**,src/${{ inputs.source }}/service/**,src/${{ inputs.source }}/repository/**
+            -Dsonar.coverage.exclusions=src/${{ inputs.source }}/Server.java,src/${{ inputs.source }}/Settings.java
             -Dsonar.sourceEncoding=UTF-8
 
       - name: Quality Gate

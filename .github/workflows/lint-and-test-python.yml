@@ -117,8 +117,7 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**,**/grpc/**
             -Dsonar.tests=tests
-            -Dsonar.coverage.inclusions=src/${{ inputs.source }}/handler/**,src/${{ inputs.source }}/service/**,src/${{ inputs.source }}/repository/**
-            -Dsonar.coverage.exclusions=src/${{ inputs.source }}/server.py
+            -Dsonar.coverage.exclusions=src/${{ inputs.source }}/server.py,src/${{ inputs.source }}/settings.py
             -Dsonar.sourceEncoding=UTF-8
 
       - name: Quality Gate
