@@ -6,6 +6,9 @@ on:
       python-version:
         type: string
         required: true
+      source:
+        type: string
+        required: true
     secrets:
       SONAR_TOKEN:
         required: true
@@ -15,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -50,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -76,10 +79,17 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-pdm-test.outputs.cache-hit != 'true'
-        run: pdm install
+        run: pdm install --with dev
 
       - name: Run tests
         run: pdm run just test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          if-no-files-found: error
 
   sonarqube:
     runs-on: ubuntu-latest
@@ -87,6 +97,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: .
 
       - name: Scan
         uses: SonarSource/sonarqube-scan-action@v6.0.0
@@ -97,8 +113,13 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.python.version=${{ inputs.python-version }}
-            -Dsonar.coverage.exclusions=**/grpc/**,**/tests/**,**/__pycache__/**
-            -Dsonar.exclusions=**/grpc/**/*_pb2.py,**/grpc/**/*_pb2.pyi,**/grpc/**/*_pb2_grpc.py
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sources=.
+            -Dsonar.exclusions=tests/**,**/grpc/**
+            -Dsonar.tests=tests
+            -Dsonar.coverage.inclusions=src/${{ inputs.source }}/handler/**,src/${{ inputs.source }}/service/**,src/${{ inputs.source }}/repository/**
+            -Dsonar.coverage.exclusions=src/${{ inputs.source }}/server.py
+            -Dsonar.sourceEncoding=UTF-8
 
       - name: Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
