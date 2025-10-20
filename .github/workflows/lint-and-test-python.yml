@@ -114,8 +114,8 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.python.version=${{ inputs.python-version }}
             -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.sources=.
-            -Dsonar.exclusions=tests/**,**/grpc/**
+            -Dsonar.sources=src
+            -Dsonar.exclusions=**/grpc/**
             -Dsonar.tests=tests
             -Dsonar.coverage.exclusions=src/${{ inputs.source }}/server.py,src/${{ inputs.source }}/settings.py
             -Dsonar.sourceEncoding=UTF-8
