@@ -49,6 +49,8 @@ lint:
     mypy --strict .
 
 test:
-    pytest
+    pytest \
+      --cov=src/apigateway \
+      --cov-report=xml:coverage.xml
 
 prepare: format lint test
